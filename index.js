@@ -1,108 +1,143 @@
-var util = require('util')
+'use strict';
+
 var fs = require('fs')
-var path = require('path')
-var Promise = require('bluebird')
-var OSS = require('ali-oss').Wrapper
+    , path = require('path')
+    , Promise = require('bluebird')
+    , debug = require('debug')('ghost:storage:alioss')
+    , OSS = require('ali-oss').Wrapper
+    , utils = require(path.join(process.cwd(), 'core/server/utils'))
+    , StorageBase = require('ghost-storage-base');
 
-var utils = require(path.join(process.cwd(), 'core/server/utils'))
-var baseStore = require(path.join(process.cwd(), 'core/server/storage/base'))
+class AliOssStore extends StorageBase{
+    constructor(config) {
+        super();
 
-function OssStore(config) {  
-  baseStore.call(this);
-  this.options = config || {}
-  this.client = new OSS(this.options)  
-}
-
-util.inherits(OssStore, baseStore);
-
-OssStore.prototype.save = function (file, targetDir) {
-  var client = this.client
-  var origin = this.options.origin  
-  var key = this.getFileKey(file)
-
-  return new Promise(function (resolve, reject) {
-    return client.put(
-      key, 
-      fs.createReadStream(file.path)
-    )
-    .then(function (result) {
-      // console.log(result)
-      if(origin){
-        resolve(path.join(origin, result.name))
-      }else{
-        resolve(result.url)
-      }      
-    })
-    .catch(function (err) {
-      // console.log(err)
-      reject(false)
-    })
-  })
-}
-
-OssStore.prototype.exists = function (filename) {
-  // console.log('exists',filename)
-  var client = this.client  
-
-  return new Promise(function (resolve, reject) {
-    return client.head(filename).then(function (result) {
-      // console.log(result)
-      resolve(true)
-    }).catch(function (err) {
-      // console.log(err)
-      reject(false)
-    })
-
-  })
-}
-
-OssStore.prototype.serve = function (options) {  
-  return function (req, res, next) {
-    next();
-  }
-}
-
-OssStore.prototype.delete = function (filename) {
-  var client = this.client  
-
-  // console.log('del',filename)
-  return new Promise(function (resolve, reject) {
-    return client.delete(filename).then(function (result) {
-      // console.log(result)
-      resolve(true)
-    }).catch(function (err) {
-      // console.log(err)
-      reject(false)
-    })
-  })
-}
-
-OssStore.prototype.getFileKey = function (file) {
-  var keyOptions = this.options.fileKey
-
-  if (keyOptions) {
-    var getValue = function (obj) {
-      return typeof obj === 'function' ? obj() : obj
-    };
-    var ext = path.extname(file.name)
-    var name = path.basename(file.name, ext)
-
-    if (keyOptions.safeString) {
-      name = utils.safeString(name)
+        this.options = config || {};
+        debug('client config: ', this.options);
+        this.client = new OSS(this.options);
     }
 
-    if (keyOptions.prefix) {
-      name = path.join(keyOptions.prefix, name);
+    save(file, targetDir) {
+        var client = this.client;
+        var origin = this.options.origin;
+        var key = convertFilePathToWebUriPath(this.generateFileKey(file, targetDir));
+
+        return new Promise(function (resolve, reject) {
+            return client.put(
+                key,
+                fs.createReadStream(file.path)
+            )
+                .then(function (result) {
+                    debug('save file success, return data:', result);
+                    if(origin){
+                        resolve(origin + result.name)
+                    }else{
+                        resolve(result.url)
+                    }
+                })
+                .catch(function (err) {
+                    debug('save file error:', result);
+                    reject(false)
+                })
+        })
     }
 
-    if (keyOptions.suffix) {
-      name += getValue(keyOptions.suffix)
+    exists(filename, fileDir) {
+        var client = this.client
+            , fileKey = convertFilePathToWebUriPath(this.getFullFileName(filename, fileDir));
+
+        return new Promise(function (resolve, reject) {
+            return client.head(fileKey).then(function (result) {
+                debug('load file meta info:', result);
+                resolve(true)
+            }).catch(function (err) {
+                debug('load file meta error:', result);
+                reject(false)
+            })
+        })
     }
 
-    return name + ext.toLowerCase();
-  }
+    serve(options) {
+        return function (req, res, next) {
+            next();
+        }
+    }
 
-  return null;
+    delete(filename) {
+        var client = this.client;
+
+        return new Promise(function (resolve, reject) {
+            return client.delete(filename).then(function (result) {
+                debug('delete file success:', filename);
+                resolve(true)
+            }).catch(function (err) {
+                debug('delete file error:', err);
+                reject(false)
+            })
+        })
+    }
+
+    /**
+     * Not implemented.
+     * @returns {Promise.<*>}
+     */
+    read() {
+        return Promise.reject('alioss read not implemented');
+    }
+
+    generateFileKey(file, targetDir){
+        var fileKeyConfig = this.options.fileKey || {}
+            , suffix = fileKeyConfig.suffix || ''
+            , extName = path.extname(file.name);
+
+        var fileName = getRandomFileName(fileKeyConfig) + extName.toLowerCase() + suffix;
+        return this.getFullFileName(fileName, targetDir);
+    }
+
+    getFullFileName(fileName, targetDir) {
+        var fileKeyConfig = this.options.fileKey || {}
+            , prefix = fileKeyConfig.prefix || '';
+
+        targetDir = targetDir || this.getTargetDir();
+
+        return path.join(prefix, targetDir, fileName);
+    }
+
+
 }
 
-module.exports = OssStore
+//https://github.com/stevemao/left-pad
+function leftpad(str, len, ch) {
+    str = String(str);
+
+    var i = -1;
+
+    if (!ch && ch !== 0) ch = ' ';
+
+    len = len - str.length;
+
+    while (++i < len) {
+        str = ch + str;
+    }
+
+    return str;
+}
+
+/**
+ * create random the uploadFile name
+ * @param opt  name config, support prefix & suffix
+ */
+function getRandomFileName(opt) {
+    opt = opt || {};
+    var curTime = new Date()
+        , connector = opt.connector || '_'
+        , key = leftpad(Math.round(Math.random() * 99999), 5, 0);
+
+    return curTime.getTime() + connector + key;
+}
+
+function convertFilePathToWebUriPath(fileName){
+    return fileName.replace(new RegExp('\\' + path.sep, 'g'), '/')
+}
+
+module.exports = AliOssStore;

@@ -1,6 +1,6 @@
 {
-  "name": "ghost-oss-store",
-  "version": "1.0.0",
+  "name": "ghost-storage-alioss",
+  "version": "0.0.1",
   "description": "Ghost Aliyun Oss storage module.",
   "main": "index.js",
   "scripts": {
@@ -8,12 +8,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git@github.com:MT-Libraries/ghost-oss-store.git"
+    "url": "git@github.com:rdshoep/ghost-storage-alioss.git"
   },  
-  "author": "Thonatos.Yang",
+  "author": "Rdshoep",
   "license": "MIT",
   "dependencies": {
-    "ali-oss": "^4.4.4",
-    "bluebird": "^3.4.6"
+    "ali-oss": "^4.8.0",
+    "bluebird": "^3.4.6",
+    "debug": "2.6.4",
+    "ghost-storage-base": "0.0.1"
   }
 }

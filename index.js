@@ -37,6 +37,12 @@ class AliOssStore extends StorageBase{
         var origin = this.options.origin;
         var key = convertFilePathToWebUriPath(this.generateFileKey(file, targetDir));
 
+        var fileKey = this.options.fileKey || {}
+        var styleParams = ''
+        if(fileKey.style){
+            styleParams = '?x-oss-process=style/' + fileKey.style
+        }
+
         return new Promise(function (resolve, reject) {
             return client.put(
                 key,
@@ -51,7 +57,7 @@ class AliOssStore extends StorageBase{
                 .then(function (result) {
                     debug('save file success, return data:', result);
                     if(origin){
-                        resolve(origin + path.join('/' + result.name))
+                        resolve(origin + path.join('/' + result.name) + styleParams)
                     }else{
                         resolve(result.url)
                     }
@@ -111,7 +117,7 @@ class AliOssStore extends StorageBase{
             , suffix = fileKeyConfig.suffix || ''
             , extName = path.extname(file.name);
 
-        var fileName = getRandomFileName(fileKeyConfig) + extName.toLowerCase() + suffix;
+        var fileName = getRandomFileName(fileKeyConfig) + extName.toLowerCase();
         return this.getFullFileName(fileName, targetDir);
     }
 

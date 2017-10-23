@@ -5,8 +5,23 @@ var fs = require('fs')
     , Promise = require('bluebird')
     , debug = require('debug')('ghost:storage:alioss')
     , OSS = require('ali-oss').Wrapper
-    , utils = require(path.join(process.cwd(), 'core/server/utils'))
     , StorageBase = require('ghost-storage-base');
+
+const cwd = process.cwd();
+let ghostRoot;
+
+if (fs.existsSync(path.join(cwd, 'core'))) {
+    ghostRoot = cwd;
+} else if (fs.existsSync(path.join(cwd, 'current'))) {
+    // installed via ghost cli
+    ghostRoot = path.join(cwd, 'current');
+}
+
+if (!ghostRoot) {
+    throw new Error('Can not get ghost root path!');
+}
+
+const utils = require(path.join(ghostRoot, 'core/server/utils'));
 
 class AliOssStore extends StorageBase{
     constructor(config) {
@@ -25,18 +40,24 @@ class AliOssStore extends StorageBase{
         return new Promise(function (resolve, reject) {
             return client.put(
                 key,
-                fs.createReadStream(file.path)
+                fs.createReadStream(file.path),
+                {
+                    headers: {
+                        //set downloading file's name
+                        "Content-Disposition": "attachment;filename=" + path.basename(file.name)
+                    }
+                }
             )
                 .then(function (result) {
                     debug('save file success, return data:', result);
                     if(origin){
-                        resolve(origin + result.name)
+                        resolve(origin + path.join('/' + result.name))
                     }else{
                         resolve(result.url)
                     }
                 })
                 .catch(function (err) {
-                    debug('save file error:', result);
+                    debug('save file error:', err);
                     reject(false)
                 })
         })
@@ -51,7 +72,7 @@ class AliOssStore extends StorageBase{
                 debug('load file meta info:', result);
                 resolve(true)
             }).catch(function (err) {
-                debug('load file meta error:', result);
+                debug('load file meta error:', err);
                 reject(false)
             })
         })
@@ -98,12 +119,10 @@ class AliOssStore extends StorageBase{
         var fileKeyConfig = this.options.fileKey || {}
             , prefix = fileKeyConfig.prefix || '';
 
-        targetDir = targetDir || this.getTargetDir();
+        targetDir = this.getTargetDir(targetDir);
 
         return path.join(prefix, targetDir, fileName);
     }
-
-
 }
 
 //https://github.com/stevemao/left-pad

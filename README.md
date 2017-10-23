@@ -4,9 +4,12 @@
 
 This [Ghost custom storage module](https://github.com/TryGhost/Ghost/wiki/Using-a-custom-storage-module) allows you to store media file with [Aliyun OSS](https://cn.aliyun.com/product/oss) instead of storing at local machine.
 
+### Difference between 'ghost-oss-store'
+Random the uploaded file's name, and set Content-Disposition to hold the original name
+
 ## Installation
 
-### Via NPM
+### Via NPM(not suitable for ghost-cli)
 
 - Install Oss storage module
 
@@ -67,6 +70,8 @@ storage: {
 }
 ```
 
-## License
+## Todos
+- [ ] minify the requested image file
 
-Read [LICENSE](LICENSE)
+## License
+MIT

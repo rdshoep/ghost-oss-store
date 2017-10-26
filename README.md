@@ -54,27 +54,29 @@ In order to replace the storage module, the basic requirements are:
 
 In your `config.js` file, you'll need to add a new `storage` block to whichever environment you want to change:
 
-```json
+```javascript
+//storage
 {
-    "storage": {
-      "active": "alioss",
-      "alioss": {
-        "accessKeyId": "accessKeyId",
-        "accessKeySecret": "accessKeySecret",
-        "bucket": "bucket",
-        "region": "oss-cn-hangzhou",
-        "origin": "http(s)://your-cdn-domain.com", // if you have bind custom domain to oss bucket. or false             
-        "fileKey": {
-          "prefix": "ghost/",  // {String} the prefix path,
-          "style": "" // {String} alioss image file style name. [docs](https://help.aliyun.com/document_detail/48884.html)
+    active: 'alioss',
+    'alioss': {
+        accessKeyId: 'accessKeyId',
+        accessKeySecret: 'accessKeySecret',
+        bucket: 'bucket',
+        region: 'oss-cn-hangzhou',
+        origin: 'http(s)://your-cdn-domain.com', // if you have bind custom domain to oss bucket. or false             
+        fileKey: {
+            prefix: 'ghost/',  // {String | Function} will be formated by moment.js, using `[]` to escape,
+            "style": "" // {String} alioss image file style name. [docs](https://help.aliyun.com/document_detail/48884.html)
+        },
+        headers: {
+            contentDisposition: 'inline' //{String} inline, attachment, or false. Set false to disabled 'Content-Disposition'
         }
-      }
     }
 }
 ```
 
 ## Todos
-- [x] minify the requested image file
+- [ ] minify the requested image file
 
 ## License
 MIT

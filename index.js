@@ -38,21 +38,29 @@ class AliOssStore extends StorageBase{
         var key = convertFilePathToWebUriPath(this.generateFileKey(file, targetDir));
 
         var fileKey = this.options.fileKey || {}
+            , headers = this.options.headers || {};
+
         var styleParams = ''
         if(fileKey.style){
             styleParams = '?x-oss-process=style/' + fileKey.style
         }
 
         return new Promise(function (resolve, reject) {
+            const options = {}
+                , contentDisposition = headers.contentDisposition !== undefined ? headers.contentDisposition : 'inline'; //default inline mode
+
+            //if contentDisposition is false, disable Content-Disposition Header
+            if(contentDisposition){
+                options.headers = {
+                    //set downloading file's name
+                    "Content-Disposition": contentDisposition + ";filename=" + path.basename(file.name)
+                }
+            }
+
             return client.put(
                 key,
                 fs.createReadStream(file.path),
-                {
-                    headers: {
-                        //set downloading file's name
-                        "Content-Disposition": "attachment;filename=" + path.basename(file.name)
-                    }
-                }
+                options
             )
                 .then(function (result) {
                     debug('save file success, return data:', result);

@@ -46,13 +46,7 @@ class AliOssStore extends StorageBase{
         return new Promise(function (resolve, reject) {
             return client.put(
                 key,
-                fs.createReadStream(file.path),
-                {
-                    headers: {
-                        //set downloading file's name
-                        "Content-Disposition": "attachment;filename=" + path.basename(file.name)
-                    }
-                }
+                fs.createReadStream(file.path)
             )
                 .then(function (result) {
                     debug('save file success, return data:', result);

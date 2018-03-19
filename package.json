@@ -1,6 +1,6 @@
 {
   "name": "ghost-storage-alioss",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Ghost Aliyun Oss storage module.",
   "main": "index.js",
   "scripts": {

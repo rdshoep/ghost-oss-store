@@ -53,7 +53,7 @@ class AliOssStore extends StorageBase{
             if(contentDisposition){
                 options.headers = {
                     //set downloading file's name
-                    "Content-Disposition": contentDisposition + ";filename=" + path.basename(file.name)
+                    "Content-Disposition": contentDisposition + ";filename=" + encodeURIComponent(path.basename(file.name))
                 }
             }
 
